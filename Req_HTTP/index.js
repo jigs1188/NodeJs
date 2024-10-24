@@ -19,7 +19,7 @@ function myURlserver(req,res){
     console.log(myurl);
 
 
-    // fs.appendFile('log.txt',log1,(err,data)=>{
+    // fs.appendFile('log.txt',log1,(err,data)=>{000
     //     res.end("hello from server again");
 
     // })

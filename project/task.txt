@@ -4,3 +4,10 @@ get/user - all users
 
 get/user/1 - user with id 1
 get/user/2 - user with id 2
+
+dyanamic path variable
+
+get/user/:id
+:id-> variable | dyanamic
+
+post /api/users -- create new user

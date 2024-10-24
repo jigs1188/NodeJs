@@ -11,4 +11,3 @@ console.log('Hello, World!');
 const {add, subtract} = require('./math.js');
 console.log("math value is",add(5,6));
 console.log("math value is",subtract(5,6));
-

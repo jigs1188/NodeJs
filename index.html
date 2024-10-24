@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div class="markdown prose w-full break-words dark:prose-invert dark">
+    
+    <hr>
+    <h3><strong>1. Condition Variables</strong></h3>
+    <ul>
+      <li><strong>Condition Variables</strong> allow threads to wait for certain conditions to be true before
+        proceeding.</li>
+      <li><strong>Key Routines</strong>:<ul>
+          <li><code>wait()</code>: Called when a thread wants to sleep until a condition is met.</li>
+          <li><code>signal()</code>: Wakes up a thread when a condition has been satisfied.</li>
+        </ul>
+      </li>
+    </ul>
+    <h4><strong>Code Example</strong>: A Possible Solution with Condition Variables</h4>
+    <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">cond_t</span> cv;
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">thrd_exit</span><span class="hljs-params">()</span> {
+  signal(&amp;cv);  <span class="hljs-comment">// Notify that the child is done</span>
+}
+
+<span class="hljs-type">void</span> *<span class="hljs-title function_">child</span><span class="hljs-params">(<span class="hljs-type">void</span> *arg)</span> {
+  thrd_exit();
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">thrd_join</span><span class="hljs-params">()</span> {
+  wait(&amp;cv);  <span class="hljs-comment">// Parent waits for the child</span>
+}
+
+<span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">char</span> *argv[])</span> {
+  <span class="hljs-type">pthread_t</span> c;
+  pthread_create(&amp;c, <span class="hljs-literal">NULL</span>, child, <span class="hljs-literal">NULL</span>);
+  thrd_join();
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+</code></div></div></pre>
+    <ul>
+      <li><strong>Issue</strong>: If the child thread exits before the parent calls <code>wait()</code>, the parent
+        could wait forever, leading to a race condition.</li>
+    </ul>
+    <h3><strong>2. Producer-Consumer Problem</strong></h3>
+    <ul>
+      <li>The <strong>Producer-Consumer Problem</strong> is a classic synchronization problem where the producer adds
+        items to a buffer, and the consumer removes items.</li>
+      <li><strong>Buffer</strong>: Can hold only one item at a time.</li>
+    </ul>
+    <h4><strong>Code Example</strong>: Producer-Consumer Problem (Basic Version)</h4>
+    <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">int</span> buffer;
+<span class="hljs-type">int</span> count = <span class="hljs-number">0</span>;  <span class="hljs-comment">// initially empty</span>
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">put</span><span class="hljs-params">(<span class="hljs-type">int</span> value)</span> {
+  assert(count == <span class="hljs-number">0</span>);  <span class="hljs-comment">// Ensure buffer is empty</span>
+  buffer = value;
+  count = <span class="hljs-number">1</span>;  <span class="hljs-comment">// Mark buffer as full</span>
+}
+
+<span class="hljs-type">int</span> <span class="hljs-title function_">get</span><span class="hljs-params">()</span> {
+  assert(count == <span class="hljs-number">1</span>);  <span class="hljs-comment">// Ensure buffer is full</span>
+  <span class="hljs-type">int</span> tmp = buffer;
+  count = <span class="hljs-number">0</span>;  <span class="hljs-comment">// Mark buffer as empty</span>
+  <span class="hljs-keyword">return</span> tmp;
+}
+</code></div></div></pre>
+    <ul>
+      <li><strong>Problem</strong>: Either the producer may try to add an item to a full buffer or the consumer may
+        attempt to take an item from an empty buffer.</li>
+    </ul>
+    <h3><strong>3. Semaphores</strong></h3>
+    <ul>
+      <li>A <strong>semaphore</strong> is a synchronization primitive with two functions:<ul>
+          <li><code>sem_wait()</code>: Decreases the semaphore value, waits if the value is zero.</li>
+          <li><code>sem_post()</code>: Increases the semaphore value and wakes waiting threads if needed.</li>
+        </ul>
+      </li>
+    </ul>
+    <h4><strong>Binary Semaphores (Used as Locks)</strong>:</h4>
+    <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">sem_t</span> m;
+sem_init(&amp;m, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+
+sem_wait(&amp;m);  <span class="hljs-comment">// Lock acquired</span>
+<span class="hljs-comment">// critical section</span>
+sem_post(&amp;m);  <span class="hljs-comment">// Lock released</span>
+</code></div></div></pre>
+    <h4><strong>Code Example</strong>: Semaphores in Producer-Consumer Problem</h4>
+    <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">sem_t</span> empty, full, mutex;
+sem_init(&amp;empty, <span class="hljs-number">0</span>, MAX);  <span class="hljs-comment">// Tracks empty slots</span>
+sem_init(&amp;full, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);     <span class="hljs-comment">// Tracks full slots</span>
+sem_init(&amp;mutex, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);    <span class="hljs-comment">// Mutual exclusion for buffer access</span>
+
+<span class="hljs-type">void</span> *<span class="hljs-title function_">producer</span><span class="hljs-params">(<span class="hljs-type">void</span> *arg)</span> {
+  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i++) {
+    sem_wait(&amp;empty);  <span class="hljs-comment">// Wait for an empty slot</span>
+    sem_wait(&amp;mutex);  <span class="hljs-comment">// Lock the buffer</span>
+    put(i);
+    sem_post(&amp;mutex);  <span class="hljs-comment">// Unlock the buffer</span>
+    sem_post(&amp;full);   <span class="hljs-comment">// Signal that a slot is full</span>
+  }
+}
+
+<span class="hljs-type">void</span> *<span class="hljs-title function_">consumer</span><span class="hljs-params">(<span class="hljs-type">void</span> *arg)</span> {
+  <span class="hljs-type">int</span> tmp = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">while</span> (tmp != <span class="hljs-number">-1</span>) {
+    sem_wait(&amp;full);  <span class="hljs-comment">// Wait for a full slot</span>
+    sem_wait(&amp;mutex);  <span class="hljs-comment">// Lock the buffer</span>
+    tmp = get();
+    sem_post(&amp;mutex);  <span class="hljs-comment">// Unlock the buffer</span>
+    sem_post(&amp;empty);  <span class="hljs-comment">// Signal that a slot is empty</span>
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%d\n"</span>, tmp);
+  }
+}
+</code></div></div></pre>
+    <ul>
+      <li><strong>Solution</strong>: Using semaphores ensures that producers wait if the buffer is full, and consumers
+        wait if it is empty, while maintaining mutual exclusion for buffer access.</li>
+    </ul>
+    <h3><strong>4. Reader-Writer Locks</strong></h3>
+    <ul>
+      <li><strong>Reader-Writer Locks</strong> allow multiple readers to access a shared resource simultaneously, but
+        only one writer can modify it at any time.</li>
+      <li><strong>Problem</strong>: Readers can starve writers if too many readers hold the lock.</li>
+    </ul>
+    <h4><strong>Code Example</strong>: Reader-Writer Lock Implementation</h4>
+    <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">rwlock_t</span> {</span>
+  <span class="hljs-type">sem_t</span> lock;        <span class="hljs-comment">// Binary semaphore (basic lock)</span>
+  <span class="hljs-type">sem_t</span> writelock;   <span class="hljs-comment">// Write lock (only one writer allowed)</span>
+  <span class="hljs-type">int</span> readers;       <span class="hljs-comment">// Number of readers in the critical section</span>
+} <span class="hljs-type">rwlock_t</span>;
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">rwlock_init</span><span class="hljs-params">(<span class="hljs-type">rwlock_t</span> *rw)</span> {
+  rw-&gt;readers = <span class="hljs-number">0</span>;
+  sem_init(&amp;rw-&gt;lock, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+  sem_init(&amp;rw-&gt;writelock, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">rwlock_acquire_readlock</span><span class="hljs-params">(<span class="hljs-type">rwlock_t</span> *rw)</span> {
+  sem_wait(&amp;rw-&gt;lock);
+  rw-&gt;readers++;
+  <span class="hljs-keyword">if</span> (rw-&gt;readers == <span class="hljs-number">1</span>)  <span class="hljs-comment">// First reader gets the write lock</span>
+    sem_wait(&amp;rw-&gt;writelock);
+  sem_post(&amp;rw-&gt;lock);
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">rwlock_release_readlock</span><span class="hljs-params">(<span class="hljs-type">rwlock_t</span> *rw)</span> {
+  sem_wait(&amp;rw-&gt;lock);
+  rw-&gt;readers--;
+  <span class="hljs-keyword">if</span> (rw-&gt;readers == <span class="hljs-number">0</span>)  <span class="hljs-comment">// Last reader releases the write lock</span>
+    sem_post(&amp;rw-&gt;writelock);
+  sem_post(&amp;rw-&gt;lock);
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">rwlock_acquire_writelock</span><span class="hljs-params">(<span class="hljs-type">rwlock_t</span> *rw)</span> {
+  sem_wait(&amp;rw-&gt;writelock);  <span class="hljs-comment">// Only one writer allowed</span>
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">rwlock_release_writelock</span><span class="hljs-params">(<span class="hljs-type">rwlock_t</span> *rw)</span> {
+  sem_post(&amp;rw-&gt;writelock);  <span class="hljs-comment">// Release the write lock</span>
+}
+</code></div></div></pre>
+    <ul>
+      <li><strong>Explanation</strong>:<ul>
+          <li>Multiple readers can access the shared resource simultaneously by increasing the reader count.</li>
+          <li>The first reader locks the write access to prevent writing while reading.</li>
+          <li>Writers wait for readers to finish before acquiring the write lock.</li>
+        </ul>
+      </li>
+    </ul>
+    <h3><strong>5. Deadlocks</strong></h3>
+    <ul>
+      <li><strong>Deadlock</strong> occurs when threads hold resources (e.g., locks) and wait indefinitely for others,
+        leading to a circular waiting chain.</li>
+      <li><strong>Four Conditions for Deadlock</strong>:<ul>
+          <li><strong>Mutual Exclusion</strong>: Only one thread can hold a resource.</li>
+          <li><strong>Hold and Wait</strong>: Threads hold resources while waiting for others.</li>
+          <li><strong>No Preemption</strong>: Resources cannot be forcibly taken away.</li>
+          <li><strong>Circular Wait</strong>: A circular chain of threads is waiting for each other.</li>
+        </ul>
+      </li>
+    </ul>
+    <h4><strong>Avoiding Circular Wait</strong>:</h4>
+    <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c">pthread_mutex_lock(L1);
+pthread_mutex_lock(L2);
+</code></div></div></pre>
+    <ul>
+      <li>To avoid circular wait, always acquire locks in a predefined order:
+        <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-keyword">if</span> (pthread_mutex_trylock(L2) != <span class="hljs-number">0</span>) {
+  pthread_mutex_unlock(L1);
+  <span class="hljs-comment">// Try again</span>
+}
+</code></div></div></pre>
+      </li>
+    </ul>
+    <h3><strong>6. Dining Philosophers Problem</strong></h3>
+    <ul>
+      <li><strong>Scenario</strong>: Five philosophers sit at a table with one fork between each. They alternate between
+        thinking and eating, but can only eat when they have both left and right forks.</li>
+      <li><strong>Goal</strong>: Design an algorithm to ensure that no philosopher starves.</li>
+    </ul>
+    <h4><strong>Solution Attempts</strong>:</h4>
+    <ul>
+      <li>
+        <p><strong>Attempt 1: Global Lock</strong>: Use one lock to control access to all forks.</p>
+        <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">sem_t</span> sem;
+sem_init(&amp;sem, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">get_forks</span><span class="hljs-params">(<span class="hljs-type">int</span> p)</span> {
+  sem_wait(&amp;sem);  <span class="hljs-comment">// All forks are locked</span>
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">put_forks</span><span class="hljs-params">(<span class="hljs-type">int</span> p)</span> {
+  sem_post(&amp;sem);  <span class="hljs-comment">// All forks are released</span>
+}
+</code></div></div></pre>
+      </li>
+      <li>
+        <p><strong>Attempt 2: Lock per Fork</strong>: Use a separate semaphore for each fork.</p>
+        <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">sem_t</span> sem[<span class="hljs-number">5</span>];
+<span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">5</span>; i++)
+  sem_init(&amp;sem[i], <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">get_forks</span><span class="hljs-params">(<span class="hljs-type">int</span> p)</span> {
+  sem_wait(&amp;sem[left[p]]);
+  sem_wait(&amp;sem[right[p]]);
+}
+
+<span class="hljs-type">void</span> <span class="hljs-title function_">put_forks</span><span class="hljs-params">(<span class="hljs-type">int</span> p)</span> {
+  sem_post(&amp;sem[left[p]]);
+  sem_post(&amp;sem[right[p]]);
+}
+</code></div></div></pre>
+      </li>
+      <li>
+        <p><strong>Attempt 3: Break the Cycle</strong>: Break the cycle by having one philosopher pick up the forks in
+          reverse order.</p>
+        <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c"><span class="hljs-type">void</span> <span class="hljs-title function_">get_forks</span><span class="hljs-params">(<span class="hljs-type">int</span> p)</span> {
+  <span class="hljs-keyword">if</span> (p == <span class="hljs-number">4</span>) {
+    sem_wait(&amp;sem[left[p]]);
+    sem_wait(&amp;sem[right[p]]);
+  } <span class="hljs-keyword">else</span> {
+    sem_wait(&amp;sem[right[p]]);
+    sem_wait(&amp;sem[left[p]]);
+  }
+}
+</code></div></div></pre>
+      </li>
+    </ul>
+    <h3><strong>7. Event-Based Concurrency: <code>select()</code> API</strong></h3>
+    <ul>
+      <li><strong>Purpose</strong>: Handle multiple file descriptors (FDs) by waiting for them to become "ready" for
+        reading or writing.</li>
+      <li><strong>Code Example</strong>:
+        <pre class="!overflow-visible"><div class="contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative bg-token-sidebar-surface-primary dark:bg-gray-950"><div class="flex items-center text-token-text-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9 bg-token-sidebar-surface-primary dark:bg-token-main-surface-secondary">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-sidebar-surface-primary px-2 font-sans text-xs text-token-text-secondary dark:bg-token-main-surface-secondary"><span class="" data-state="closed"> </span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c">fd_set readFDs;
+FD_ZERO(&amp;readFDs);
+<span class="hljs-type">int</span> fd;
+<span class="hljs-keyword">for</span> (fd = minFD; fd &lt; maxFD; fd++)
+  FD_SET(fd, &amp;readFDs);
+
+<span class="hljs-type">int</span> rc = select(maxFD + <span class="hljs-number">1</span>, &amp;readFDs, <span class="hljs-literal">NULL</span>, <span class="hljs-literal">NULL</span>, <span class="hljs-literal">NULL</span>);
+<span class="hljs-keyword">for</span> (fd = minFD; fd &lt; maxFD; fd++) {
+  <span class="hljs-keyword">if</span> (FD_ISSET(fd, &amp;readFDs))
+    processFD(fd);
+}
+</code></div></div></pre>
+      </li>
+      <li><strong>Explanation</strong>:<ul>
+          <li><code>select()</code> monitors multiple FDs, and <code>FD_ISSET()</code> checks which FDs are ready for
+            processing.</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</body>
+
+</html>
